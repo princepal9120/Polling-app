@@ -1,8 +1,6 @@
-// server/controllers/authController.js
 const User = require('../models/User');
 const { v4: uuidv4 } = require('uuid');
 
-// Register or login user with just a username
 exports.registerOrLogin = async (req, res) => {
   try {
     const { username } = req.body;
@@ -14,14 +12,12 @@ exports.registerOrLogin = async (req, res) => {
       });
     }
 
-    // Check if username already exists
     let user = await User.findOne({ username: username.trim() });
 
     if (user) {
-      // Update last active time
       user.lastActive = new Date();
       await user.save();
-      
+
       return res.status(200).json({
         success: true,
         user: {
@@ -31,7 +27,6 @@ exports.registerOrLogin = async (req, res) => {
       });
     }
 
-    // Create new user if not exists
     const userId = `user_${uuidv4()}`;
     user = new User({
       username: username.trim(),
@@ -56,11 +51,10 @@ exports.registerOrLogin = async (req, res) => {
   }
 };
 
-// Check if username is available
 exports.checkUsername = async (req, res) => {
   try {
     const { username } = req.query;
-    
+
     if (!username || username.trim() === '') {
       return res.status(400).json({
         success: false,
@@ -69,7 +63,7 @@ exports.checkUsername = async (req, res) => {
     }
 
     const existingUser = await User.findOne({ username: username.trim() });
-    
+
     res.json({
       success: true,
       isAvailable: !existingUser
@@ -83,21 +77,19 @@ exports.checkUsername = async (req, res) => {
   }
 };
 
-// Get user by ID
 exports.getUserById = async (req, res) => {
   try {
     const { userId } = req.params;
     console.log(userId)
     const user = await User.findOne({ userId });
 
-    
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.json({
       success: true,
       user: {

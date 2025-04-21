@@ -1,4 +1,3 @@
-// server/socket/socketHandler.js
 const { generateRoomCode } = require('../utils/helpers');
 const Poll = require('../models/Poll');
 const User = require('../models/User');
@@ -6,7 +5,6 @@ const User = require('../models/User');
 module.exports = function (io) {
     const activeRooms = new Map();
 
-    // Helper function to update room state
     const updateRoomState = async (roomId) => {
         try {
             const poll = await Poll.findOne({ roomId });
@@ -28,7 +26,6 @@ module.exports = function (io) {
             activeRooms.set(roomId, roomData);
             io.to(roomId).emit('room_update', roomData);
 
-            // Check if poll has expired
             if (poll.isActive && new Date() > poll.expiresAt) {
                 poll.isActive = false;
                 await poll.save();
@@ -39,7 +36,6 @@ module.exports = function (io) {
         }
     };
 
-    // Set up interval to check for expired polls
     setInterval(async () => {
         for (const [roomId] of activeRooms) {
             await updateRoomState(roomId);
@@ -47,9 +43,6 @@ module.exports = function (io) {
     }, 1000);
 
     io.on('connection', async (socket) => {
-        console.log(`User connected: ${socket.id}`);
-
-        // Auth data from socket connection
         const userId = socket.handshake.auth.userId;
         const username = socket.handshake.auth.username;
 
@@ -59,7 +52,6 @@ module.exports = function (io) {
             return;
         }
 
-        // Verify user exists in database
         try {
             const user = await User.findOne({ userId });
 
@@ -69,7 +61,6 @@ module.exports = function (io) {
                 return;
             }
 
-            // Update last active time
             user.lastActive = new Date();
             await user.save();
         } catch (error) {
@@ -79,7 +70,6 @@ module.exports = function (io) {
             return;
         }
 
-        // Create a new poll room
         socket.on('create_room', async (data, callback) => {
             try {
                 const { question, options, createdBy } = data;
@@ -91,13 +81,9 @@ module.exports = function (io) {
                     });
                 }
 
-                // Generate a unique room ID (6 character alphanumeric)
                 const roomId = generateRoomCode();
-
-                // Set expiry time (1hr  from now)
                 const expiresAt = new Date(Date.now() + 3600 * 1000);
 
-                // Create new poll in database
                 const newPoll = new Poll({
                     roomId,
                     question,
@@ -109,11 +95,7 @@ module.exports = function (io) {
                 });
 
                 await newPoll.save();
-
-                // Add socket to room
                 socket.join(roomId);
-
-                // Update room state
                 await updateRoomState(roomId);
 
                 callback({ success: true, roomId });
@@ -123,7 +105,6 @@ module.exports = function (io) {
             }
         });
 
-        // Join an existing poll room
         socket.on('join_room', async (data, callback) => {
             try {
                 const { roomId, userId, username } = data;
@@ -132,16 +113,12 @@ module.exports = function (io) {
                     return callback({ success: false, error: 'Invalid join data' });
                 }
 
-                // Check if room exists
                 const poll = await Poll.findOne({ roomId });
                 if (!poll) {
                     return callback({ success: false, error: 'Room not found' });
                 }
 
-                // Join socket to room
                 socket.join(roomId);
-
-                // Update room state
                 await updateRoomState(roomId);
 
                 callback({ success: true });
@@ -151,7 +128,6 @@ module.exports = function (io) {
             }
         });
 
-        // Cast a vote
         socket.on('cast_vote', async (data, callback) => {
             try {
                 const { roomId, userId, optionIndex } = data;
@@ -161,27 +137,23 @@ module.exports = function (io) {
                         socket.emit('error', { message: 'Invalid vote data' });
                 }
 
-                // Find poll
                 const poll = await Poll.findOne({ roomId });
                 if (!poll) {
                     return callback?.({ success: false, error: 'Room not found' }) ||
                         socket.emit('error', { message: 'Room not found' });
                 }
 
-                // Check if poll is still active
                 if (!poll.isActive || new Date() > poll.expiresAt) {
                     return callback?.({ success: false, error: 'This poll has expired' }) ||
                         socket.emit('error', { message: 'This poll has expired' });
                 }
 
-                // Check if user has already voted
                 const existingVote = poll.votes.find(v => v.userId === userId);
                 if (existingVote) {
                     return callback?.({ success: false, error: 'You have already voted' }) ||
                         socket.emit('error', { message: 'You have already voted' });
                 }
 
-                // Add vote
                 poll.votes.push({
                     userId,
                     username,
@@ -189,8 +161,6 @@ module.exports = function (io) {
                 });
 
                 await poll.save();
-
-                // Update room state
                 await updateRoomState(roomId);
 
                 callback?.({ success: true }) || socket.emit('vote_recorded', { success: true });
@@ -201,7 +171,6 @@ module.exports = function (io) {
             }
         });
 
-        // Handle disconnection
         socket.on('disconnect', () => {
             console.log(`User disconnected: ${socket.id}`);
         });

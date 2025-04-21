@@ -28,7 +28,7 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (!user) {
-      router.push(`/login?redirectTo=/room/${roomId}`);
+      router.push(`/login`);
       return;
     }
 

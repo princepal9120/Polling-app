@@ -1,14 +1,13 @@
-// client/src/contexts/auth-context.tsx
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { loginUser, User } from "@/lib/api";
+import { loginUser, logoutUser, User } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type AuthContextType = {
   user: User | null;
   login: (username: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 };
 
@@ -20,7 +19,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load user from localStorage
+
     const storedUser = localStorage.getItem("pollUser");
     if (storedUser) {
       try {
@@ -60,14 +59,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("pollUser");
-    setUser(null);
-    toast({
-      title: "Logged Out",
-      description: "You have been logged out successfully",
-      variant: "default",
-    });
+  const logout = async () => {
+    try {
+      if (user) {
+        setIsLoading(true);
+        await logoutUser(user.id);
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout Error",
+        description:
+          error instanceof Error ? error.message : "Failed to logout",
+        variant: "destructive",
+      });
+    } finally {
+      localStorage.removeItem("pollUser");
+      setUser(null);
+      setIsLoading(false);
+      toast({
+        title: "Logged Out",
+        description: "You have been logged out successfully",
+        variant: "default",
+      });
+    }
   };
 
   const value = {

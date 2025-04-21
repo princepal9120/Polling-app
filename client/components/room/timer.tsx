@@ -14,8 +14,7 @@ export default function Timer({ seconds, isActive }: TimerProps) {
   const [isWarning, setIsWarning] = useState<boolean>(false);
   
   useEffect(() => {
-    // Format seconds to MM:SS
-    const format = (time: number): string => {
+      const format = (time: number): string => {
       const mins = Math.floor(time / 60);
       const secs = Math.floor(time % 60);
       return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
@@ -23,12 +22,12 @@ export default function Timer({ seconds, isActive }: TimerProps) {
     
     setTimeString(format(seconds));
     
-    // Calculate progress percentage
+
     const maxTime = 60; // 60 seconds is the standard timer
     const currentProgress = Math.min(100, Math.max(0, (seconds / maxTime) * 100));
     setProgress(currentProgress);
     
-    // Set warning state when time is low
+   
     setIsWarning(seconds <= 10 && isActive);
   }, [seconds, isActive]);
 

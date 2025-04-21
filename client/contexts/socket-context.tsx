@@ -45,7 +45,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    // Connect to socket server
+
     const socketInstance = io(
       process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000",
       {

@@ -3,12 +3,19 @@
 import { useState, useEffect } from "react";
 import { useSocket } from "@/contexts/socket-context";
 import { useAuth } from "@/contexts/auth-context";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Share2, Clock, Users, ThumbsUp } from "lucide-react";
 import ParticipantList from "@/components/room/participant-list";
 import Timer from "@/components/room/timer";
@@ -22,19 +29,27 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
   const { user } = useAuth();
   const { socket, castVote } = useSocket();
   const { toast } = useToast();
-  const [timeRemaining, setTimeRemaining] = useState<number>(roomData.timeRemaining || 60);
+  const [timeRemaining, setTimeRemaining] = useState<number>(
+    roomData.timeRemaining || 60
+  );
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [hasVoted, setHasVoted] = useState<boolean>(false);
-  const [voteResults, setVoteResults] = useState<number[]>(roomData.votes || [0, 0]);
-  const [participants, setParticipants] = useState<any[]>(roomData.participants || []);
-  const [isRoomActive, setIsRoomActive] = useState<boolean>(roomData.active !== false);
+  const [voteResults, setVoteResults] = useState<number[]>(
+    roomData.votes || [0, 0]
+  );
+  const [participants, setParticipants] = useState<any[]>(
+    roomData.participants || []
+  );
+  const [isRoomActive, setIsRoomActive] = useState<boolean>(
+    roomData.active !== false
+  );
   const [totalVotes, setTotalVotes] = useState<number>(
-    roomData.votes ? roomData.votes.reduce((a: number, b: number) => a + b, 0) : 0
+    roomData.votes
+      ? roomData.votes.reduce((a: number, b: number) => a + b, 0)
+      : 0
   );
 
-  // Initialize user's vote from localStorage
   useEffect(() => {
-    // Check if user has already voted
     const userVoteData = participants.find((p) => p.userId === user?.id);
     if (userVoteData && userVoteData.hasVoted) {
       setHasVoted(true);
@@ -42,19 +57,21 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
     }
   }, [participants, user]);
 
-  // Socket event listeners
   useEffect(() => {
     if (!socket) return;
 
-    // Vote update handler
-    const handleVoteUpdate = (data: { votes: number[], participants: any[] }) => {
+    const handleVoteUpdate = (data: {
+      votes: number[];
+      participants: any[];
+    }) => {
       setVoteResults(data.votes);
       setParticipants(data.participants);
       setTotalVotes(data.votes.reduce((a, b) => a + b, 0));
-      
-      // Check if current user has voted
+
       if (user) {
-        const userVoteData = data.participants.find((p) => p.userId === user.id);
+        const userVoteData = data.participants.find(
+          (p) => p.userId === user.id
+        );
         if (userVoteData && userVoteData.hasVoted) {
           setHasVoted(true);
           setSelectedOption(userVoteData.vote);
@@ -62,12 +79,10 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
       }
     };
 
-    // Timer update handler
     const handleTimerUpdate = (data: { timeRemaining: number }) => {
       setTimeRemaining(data.timeRemaining);
     };
 
-    // Room ended handler
     const handleRoomEnded = () => {
       setIsRoomActive(false);
       toast({
@@ -76,12 +91,10 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
       });
     };
 
-    // Subscribe to socket events
     socket.on("vote_update", handleVoteUpdate);
     socket.on("timer_update", handleTimerUpdate);
     socket.on("room_ended", handleRoomEnded);
 
-    // Cleanup
     return () => {
       socket.off("vote_update", handleVoteUpdate);
       socket.off("timer_update", handleTimerUpdate);
@@ -89,7 +102,6 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
     };
   }, [socket, user, toast]);
 
-  // Handle vote
   const handleVote = (optionIndex: number) => {
     if (hasVoted || !isRoomActive) return;
 
@@ -103,16 +115,17 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
     });
   };
 
-  // Share room
   const shareRoom = () => {
     if (navigator.share) {
-      navigator.share({
-        title: `Join my poll: ${roomData.question}`,
-        text: `I've created a poll and want your vote! Join with room code: ${roomId}`,
-        url: window.location.href,
-      }).catch((err) => {
-        console.error("Error sharing:", err);
-      });
+      navigator
+        .share({
+          title: `Join my poll: ${roomData.question}`,
+          text: `I've created a poll and want your vote! Join with room code: ${roomId}`,
+          url: window.location.href,
+        })
+        .catch((err) => {
+          console.error("Error sharing:", err);
+        });
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast({
@@ -122,7 +135,6 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
     }
   };
 
-  // Calculate percentages
   const calculatePercentage = (votesForOption: number) => {
     if (totalVotes === 0) return 0;
     return Math.round((votesForOption / totalVotes) * 100);
@@ -141,10 +153,13 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
                 <Share2 className="h-4 w-4" />
               </Button>
             </div>
-            <CardTitle className="text-2xl md:text-3xl">{roomData.question}</CardTitle>
+            <CardTitle className="text-2xl md:text-3xl">
+              {roomData.question}
+            </CardTitle>
             <CardDescription className="flex items-center mt-2">
-              <Users className="mr-1 h-4 w-4" /> 
-              {participants.length} participant{participants.length !== 1 ? 's' : ''}
+              <Users className="mr-1 h-4 w-4" />
+              {participants.length} participant
+              {participants.length !== 1 ? "s" : ""}
               <span className="mx-2">•</span>
               <Clock className="mr-1 h-4 w-4" />
               <Timer seconds={timeRemaining} isActive={isRoomActive} />
@@ -153,21 +168,23 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
           <CardContent>
             <div className="space-y-4">
               {roomData.options.map((option: string, index: number) => (
-                <motion.div 
+                <motion.div
                   key={index}
                   whileHover={!hasVoted && isRoomActive ? { scale: 1.01 } : {}}
                   whileTap={!hasVoted && isRoomActive ? { scale: 0.98 } : {}}
                   layout
                 >
-                  <div 
+                  <div
                     className={`relative w-full p-4 rounded-lg border-2 transition-all duration-200 ${
-                      selectedOption === index 
+                      selectedOption === index
                         ? "border-primary bg-primary/10"
-                        : hasVoted || !isRoomActive 
-                          ? "border-border bg-background"
-                          : "border-border bg-background hover:border-primary/50 cursor-pointer"
+                        : hasVoted || !isRoomActive
+                        ? "border-border bg-background"
+                        : "border-border bg-background hover:border-primary/50 cursor-pointer"
                     }`}
-                    onClick={() => !hasVoted && isRoomActive && handleVote(index)}
+                    onClick={() =>
+                      !hasVoted && isRoomActive && handleVote(index)
+                    }
                   >
                     <div className="flex justify-between items-center mb-2 z-10 relative">
                       <span className="font-medium">{option}</span>
@@ -178,15 +195,22 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
                     <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: `${calculatePercentage(voteResults[index])}%` }}
+                        animate={{
+                          width: `${calculatePercentage(voteResults[index])}%`,
+                        }}
                         transition={{ duration: 0.5, ease: "easeOut" }}
-                        className={`h-full ${selectedOption === index ? "bg-primary" : "bg-muted-foreground/70"}`}
+                        className={`h-full ${
+                          selectedOption === index
+                            ? "bg-primary"
+                            : "bg-muted-foreground/70"
+                        }`}
                       />
                     </div>
                     <div className="mt-2 text-sm text-muted-foreground">
-                      {voteResults[index]} vote{voteResults[index] !== 1 ? 's' : ''}
+                      {voteResults[index]} vote
+                      {voteResults[index] !== 1 ? "s" : ""}
                     </div>
-                    
+
                     {selectedOption === index && (
                       <motion.div
                         initial={{ scale: 0 }}
@@ -208,7 +232,13 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
               <div className="w-full p-3 bg-muted rounded-md mb-4">
                 <h3 className="font-semibold mb-1">Poll Results</h3>
                 <p className="text-sm text-muted-foreground">
-                  Final result: {roomData.options[voteResults.indexOf(Math.max(...voteResults))]} wins with {Math.max(...voteResults)} votes!
+                  Final result:{" "}
+                  {
+                    roomData.options[
+                      voteResults.indexOf(Math.max(...voteResults))
+                    ]
+                  }{" "}
+                  wins with {Math.max(...voteResults)} votes!
                 </p>
               </div>
             )}
@@ -220,10 +250,7 @@ export default function PollRoom({ roomData, roomId }: PollRoomProps) {
           </CardFooter>
         </Card>
 
-        <ParticipantList 
-          participants={participants} 
-          currentUserId={user?.id} 
-        />
+        <ParticipantList participants={participants} currentUserId={user?.id} />
       </div>
     </div>
   );
