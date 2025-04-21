@@ -94,8 +94,8 @@ module.exports = function (io) {
                 // Generate a unique room ID (6 character alphanumeric)
                 const roomId = generateRoomCode();
 
-                // Set expiry time (60 seconds from now)
-                const expiresAt = new Date(Date.now() + 60 * 1000);
+                // Set expiry time (1hr  from now)
+                const expiresAt = new Date(Date.now() + 3600 * 1000);
 
                 // Create new poll in database
                 const newPoll = new Poll({
